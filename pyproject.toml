@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vibecheck"
+version = "1.0.0"
+description = "Security scanner for AI/vibe-coded Python"
+authors = [
+    {name = "Kris Kimmerle", email = "kris@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+keywords = ["security", "static-analysis", "ai", "code-quality", "linter"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Security",
+    "Topic :: Software Development :: Quality Assurance",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.urls]
+Homepage = "https://github.com/kriskimmerle/vibecheck"
+Repository = "https://github.com/kriskimmerle/vibecheck"
+Issues = "https://github.com/kriskimmerle/vibecheck/issues"
+
+[project.scripts]
+vibecheck = "vibecheck:main"
+
+[tool.setuptools]
+py-modules = ["vibecheck"]
