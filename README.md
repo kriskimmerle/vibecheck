@@ -1,35 +1,34 @@
-# vibecheck 🔍
+# ⚡ vibecheck
 
-**Security scanner for AI/vibe-coded Python**
+**AI-Generated Code Security Meta-Auditor** — one command to catch the security patterns vibe-coded projects consistently get wrong.
 
-Detects security anti-patterns commonly produced by AI code generators (ChatGPT, Copilot, Claude, Cursor, etc.)
+Research shows 24.7% of AI-generated code has security flaws, with 1.75x more logic errors and 2.74x more XSS vulnerabilities than human-written code. Instead of installing 10+ individual security tools, run `vibecheck` for a fast, focused audit of the patterns AI gets wrong most.
 
-## The Problem
+## What It Checks
 
-"Vibe coding" — writing code via AI prompts — is increasingly common. But AI code generators have dangerous tendencies:
+| Rule | Category | Severity | What It Catches |
+|------|----------|----------|-----------------|
+| VC01 | SQL Injection | CRITICAL | f-strings/format() in SQL queries |
+| VC02 | Command Injection | CRITICAL | User input in os.system(), eval(), shell commands |
+| VC03 | Path Traversal | HIGH | User-controlled input in file paths |
+| VC04 | XSS | HIGH | Dynamic content in HTML responses without escaping |
+| VC05 | Hardcoded Secrets | CRITICAL | API keys, tokens, private keys in source |
+| VC06 | Insecure Crypto | HIGH | MD5/SHA1, random for tokens, weak ciphers |
+| VC07 | Missing Auth | HIGH | Sensitive routes without auth decorators |
+| VC08 | Debug Mode | MEDIUM | DEBUG=True, app.run(debug=True) |
+| VC09 | Unsafe Deserialization | CRITICAL | pickle.loads(), yaml.load(), eval() |
+| VC10 | Error Handling | MEDIUM | Bare except, silent exception swallowing |
+| VC11 | Resource Leaks | MEDIUM | open() without with statement |
+| VC12 | Missing Timeouts | MEDIUM | HTTP calls without timeout= |
+| VC13 | SSRF | HIGH | User input in outbound URLs |
+| VC14 | Prompt Injection | HIGH | User input formatted into LLM prompts |
+| VC15 | Insecure Defaults | MEDIUM | verify=False, CORS *, weak SECRET_KEY |
 
-- 📋 **They copy-paste vulnerabilities** across multiple functions
-- 🔑 **They love placeholder credentials** ("your-api-key-here", "sk-xxxx")  
-- 🐛 **They skip error handling** (only the "happy path")
-- 🔓 **They use insecure defaults** (debug=True, verify=False)
-- 🎲 **They confuse `random` with `secrets`** for security contexts
-- 💉 **They generate SQL injection** with f-strings
-- 🧂 **They use weak hashing** (MD5/SHA1 for passwords)
-
-**Research findings:**
-- Palo Alto Unit 42 found **69 vulnerabilities across 15 AI-generated apps** [source needed]
-- arXiv 2512.03262: ["Is Vibe Coding Safe?"](https://arxiv.org/abs/2512.03262) benchmarks security risks
-- OWASP warns about blindly trusting AI-generated code
-
-**Existing tools like Bandit and Semgrep catch generic issues.** `vibecheck` is calibrated specifically for patterns AI tends to produce.
-
-## Installation
-
-Zero dependencies. Just Python 3.8+.
+## Install
 
 ```bash
-# Download
-curl -o vibecheck.py https://raw.githubusercontent.com/kriskimmerle/vibecheck/main/vibecheck.py
+# Just download and run — zero dependencies
+curl -O https://raw.githubusercontent.com/kriskimmerle/vibecheck/main/vibecheck.py
 chmod +x vibecheck.py
 
 # Or clone
@@ -41,168 +40,146 @@ cd vibecheck
 
 ```bash
 # Scan a file
-./vibecheck.py myapp.py
+python3 vibecheck.py app.py
 
-# Scan a directory recursively
-./vibecheck.py --recursive src/
+# Scan a project
+python3 vibecheck.py src/
 
-# JSON output
-./vibecheck.py --format json myapp.py
+# Scan with fix suggestions
+python3 vibecheck.py -v app.py
 
-# CI mode: exit 1 if score below 80
-./vibecheck.py --check --min-score 80 src/
+# CI mode — fail if grade below B
+python3 vibecheck.py --check --threshold B src/
 
-# Show only errors, skip warnings
-./vibecheck.py --severity error myapp.py
+# JSON output for automation
+python3 vibecheck.py --json src/
+
+# Filter by severity
+python3 vibecheck.py --severity HIGH src/
 
 # Ignore specific rules
-./vibecheck.py --ignore VC005 --ignore VC007 myapp.py
-```
+python3 vibecheck.py --ignore VC08 --ignore VC12 src/
 
-## The Vibe Score
-
-Every scan produces a **Vibe Score** (0-100):
-- Start at 100
-- Each ERROR: -10 points  
-- Each WARNING: -5 points
-
-**Grades:**
-- 90-100: **Ship it 🚀**
-- 70-89: **Review before deploying 🔍**  
-- 50-69: **Needs security hardening ⚠️**
-- 0-49: **Do not deploy 🛑**
-
-## Detection Rules
-
-`vibecheck` implements 15 rules targeting AI-coded patterns:
-
-| Rule | Name | Severity | Description |
-|------|------|----------|-------------|
-| VC001 | Placeholder credentials | ERROR | Detects "your-api-key-here", "sk-xxxx", "TODO: replace", etc. |
-| VC002 | Insecure defaults left in | ERROR | debug=True, SECRET_KEY="secret", verify=False |
-| VC003 | Insecure random for security | ERROR | Using `random` instead of `secrets` for tokens/passwords |
-| VC004 | Unsafe deserialization | ERROR | pickle.loads(), yaml.load(), eval() on user data |
-| VC005 | Hardcoded URLs/endpoints | WARNING | API endpoints as string literals instead of config |
-| VC006 | Missing error handling | WARNING | Network/IO operations without try/except |
-| VC007 | Deprecated library usage | WARNING | urllib2, optparse, imp, cgi, md5, sha |
-| VC008 | SQL string formatting | ERROR | SQL with f-strings/.format() instead of parameters |
-| VC009 | Weak hashing | ERROR | MD5/SHA1 for password hashing |
-| VC010 | Unrestricted file operations | WARNING | open()/os.remove() with user-controlled paths |
-| VC011 | Repeated vulnerability pattern | WARNING | Same issue 3+ times (AI copy-paste) |
-| VC012 | Missing input validation | WARNING | Flask/FastAPI using request.json without validation |
-| VC013 | Subprocess with shell=True | ERROR | Shell injection risk |
-| VC014 | Broad exception suppression | WARNING | `except: pass` silently swallows errors |
-| VC015 | Insecure temp files | WARNING | tempfile.mktemp() race condition |
-
-### See all rules
-```bash
-./vibecheck.py --list-rules
+# Scan from stdin
+cat app.py | python3 vibecheck.py -
 ```
 
 ## Example Output
 
 ```
-vibecheck v1.0.0
-============================================================
+⚡ vibecheck — AI Code Security Audit
+────────────────────────────────────────────────────────────
+  Files scanned: 1
+  Findings: 28
+  Score: 0/100  Grade: F
+────────────────────────────────────────────────────────────
 
-⚠️  examples/vibe_coded.py
-   🔴 Line 12:7 [VC007] Deprecated module 'optparse': Use argparse instead
-   🔴 Line 32:0 [VC001] Placeholder credential detected: 'your-api-key-here'
-   🔴 Line 55:4 [VC003] Using random.choice for security - use secrets module
-   🔴 Line 78:11 [VC008] SQL query in f-string - use parameterized queries
-   🟡 Line 102:8 [VC006] Function 'fetch_user_data' has network/IO operations but no try/except
-   ...
+  CRITICAL: 8
+  HIGH: 9
+  MEDIUM: 11
 
-============================================================
-Vibe Score: 15/100 (Grade: F)
-Verdict: Do not deploy 🛑
+────────────────────────────────────────────────────────────
+  VC01 SQL Injection: 2
+  VC02 Command Injection: 2
+  VC04 XSS / Unsafe Output: 2
+  VC05 Hardcoded Secrets: 1
+  ...
 
-Files scanned: 1
-Issues found: 42
-  🔴 Errors: 28
-  🟡 Warnings: 14
+────────────────────────────────────────────────────────────
+
+  examples/vulnerable.py
+    L21   CRITICAL VC05 Possible OpenAI project key found in source code
+    L31   CRITICAL VC01 SQL query variable built with string formatting
+    L41   CRITICAL VC01 SQL query built with string formatting — SQL injection risk
+    L82   CRITICAL VC02 os.system() with formatted string — command injection risk
+    ...
 ```
+
+## Why Not Just Use Bandit/Semgrep/etc.?
+
+Those are great general-purpose tools. vibecheck is different:
+
+- **Focused**: Only the ~15 categories AI code fails on most — not 500 generic rules
+- **Fast**: Single-file AST analysis, no config files needed
+- **Zero deps**: Works anywhere Python 3.9+ exists
+- **AI-aware**: Checks for prompt injection, LLM-specific patterns
+- **Actionable**: Every finding includes a concrete fix suggestion
+
+Use vibecheck as a fast first pass on AI-generated code. Use Bandit/Semgrep for comprehensive audits.
 
 ## CI Integration
 
-Exit with code 1 if score is below threshold:
+### GitHub Actions
 
 ```yaml
-# .github/workflows/security.yml
-- name: Vibe Check
-  run: |
-    curl -o vibecheck.py https://raw.githubusercontent.com/kriskimmerle/vibecheck/main/vibecheck.py
-    python vibecheck.py --check --min-score 70 --recursive src/
+- name: Security check (vibecheck)
+  run: python3 vibecheck.py --check --threshold B src/
 ```
 
-## How It Works
+### Pre-commit
 
-`vibecheck` uses Python's AST (Abstract Syntax Tree) module to parse and analyze code:
-- **Zero dependencies** - stdlib only
-- **Pattern matching** on AST nodes for suspicious constructs
-- **Context-aware** - distinguishes `random` for games vs. security
-- **Heuristics** - detects repeated patterns (AI copy-paste indicator)
-
-It does NOT:
-- Execute your code
-- Send code anywhere (fully offline)
-- Require any configuration
-
-## Why Not Just Use Bandit/Semgrep?
-
-Great tools! But they're not tuned for AI-generated code:
-
-| Tool | Focus | AI-Specific Patterns |
-|------|-------|---------------------|
-| Bandit | General Python security | ❌ |
-| Semgrep | Multi-language patterns | ❌ |
-| **vibecheck** | AI vibe-coded anti-patterns | ✅ |
-
-Use `vibecheck` **alongside** Bandit/Semgrep for comprehensive coverage.
-
-## Examples
-
-See `examples/` directory:
-- `vibe_coded.py` - Typical AI-generated code (triggers all rules, Vibe Score ~15)
-- `secure_app.py` - Well-written code (Vibe Score 95+)
-
-```bash
-./vibecheck.py examples/vibe_coded.py
-./vibecheck.py examples/secure_app.py
+```yaml
+- repo: local
+  hooks:
+    - id: vibecheck
+      name: vibecheck
+      entry: python3 vibecheck.py --check
+      language: system
+      types: [python]
 ```
 
-## False Positives?
+## JSON Output
 
-AI patterns overlap with human mistakes. That's fine! If `vibecheck` flags it, it's worth reviewing.
-
-Ignore specific rules if needed:
-```bash
-./vibecheck.py --ignore VC005 myapp.py  # Skip hardcoded URL warnings
+```json
+{
+  "tool": "vibecheck",
+  "version": "1.0.0",
+  "files_scanned": 1,
+  "score": 0,
+  "grade": "F",
+  "summary": {
+    "CRITICAL": 8,
+    "HIGH": 9,
+    "MEDIUM": 11
+  },
+  "findings": [
+    {
+      "rule": "VC01",
+      "name": "SQL Injection",
+      "severity": "CRITICAL",
+      "file": "app.py",
+      "line": 31,
+      "message": "SQL query built with string formatting — SQL injection risk",
+      "fix": "Use parameterized queries: cursor.execute('SELECT * FROM t WHERE id = ?', (id,))"
+    }
+  ]
+}
 ```
 
-## Contributing
+## Grading
 
-Ideas for more AI-coded anti-patterns? Open an issue or PR!
+| Grade | Score | Meaning |
+|-------|-------|---------|
+| A+ | 95-100 | Ship it! |
+| A | 90-94 | Very good, minor issues |
+| B | 80-89 | Good, some patterns to fix |
+| C | 70-79 | Needs attention |
+| D | 60-69 | Significant issues |
+| F | 0-59 | Major security problems |
 
-Potential additions:
-- Overly broad `import *`
-- Missing type hints (AI rarely adds them)
-- Inconsistent error handling styles
-- Unusually repetitive code structure
+## Requirements
 
-## References
+- Python 3.9+
+- Zero external dependencies
 
-- [Palo Alto Unit 42: AI-Generated Code Vulnerabilities](#) (placeholder link)
-- [arXiv 2512.03262: "Is Vibe Coding Safe?"](https://arxiv.org/abs/2512.03262)
-- [OWASP: AI-Assisted Coding Risks](https://owasp.org)
-- [The discourse on "vibe coding"](#) (Twitter/HN threads)
+## Research Basis
+
+- [Replit: AI can't reliably audit its own output](https://blog.replit.com/) (2025)
+- [CodeRabbit: 24.7% of AI code has security flaws](https://www.coderabbit.ai/) (2026)
+- [Addy Osmani: Code Review in the Age of AI](https://addyosmani.com/) (2025)
+- [Unit42: Layered SAST for AI-generated code](https://unit42.paloaltonetworks.com/) (2025)
+- [OWASP: LLM Top 10](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
 
 ## License
 
-MIT License - see [LICENSE](LICENSE)
-
-## Author
-
-Built by [@kriskimmerle](https://github.com/kriskimmerle)
-
-**Ship responsibly. Check the vibes.** ✨
+MIT
